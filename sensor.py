@@ -11,6 +11,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
+# UnitOfTime is kept for minutes display
 from homeassistant.const import UnitOfTime
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
@@ -92,12 +93,10 @@ class AMBCurrentPriceSensor(SensorEntity):
         self._attr_name = "Current Energy Price"
         self._attr_unique_id = f"{config_entry.entry_id}_{SENSOR_CURRENT_PRICE}"
         self._attr_icon = "mdi:flash"
-        # Attiva polling per aggiornare ~ ogni 30s (default scan interval dei sensori)
-        self._attr_should_poll = True
+        self._attr_should_poll = True  # update ~ every 30s
 
     @property
     def available(self) -> bool:
-        # L’entità è disponibile quando l’ultimo refresh del coordinator è riuscito
         return self._coordinator.last_update_success
 
     @property
@@ -111,7 +110,6 @@ class AMBCurrentPriceSensor(SensorEntity):
         )
 
     async def async_update(self) -> None:
-        # Nessuna chiamata I/O qui: il valore viene calcolato in base ai forecasts correnti in memoria
         return
 
     @property
@@ -150,16 +148,12 @@ class AMBCurrentPriceSensor(SensorEntity):
             return {}
 
         attrs: dict[str, Any] = {"last_calculated": dt_util.now().isoformat()}
-
-        # last_updated dal coordinator (quando i dati sono stati fetchati)
         attrs[ATTR_LAST_UPDATED] = self._coordinator.data.get("last_updated")
 
-        # Range corrente
         current_info = self._get_current_period_info()
         if current_info:
             attrs[ATTR_CURRENT_RANGE] = f"{current_info['start']} - {current_info['end']}"
 
-        # Prossimo cambio
         next_change = self._find_next_change()
         if next_change:
             attrs[ATTR_NEXT_CHANGE] = (
@@ -194,7 +188,6 @@ class AMBCurrentPriceSensor(SensorEntity):
         tomorrow_str = (now + timedelta(days=1)).strftime("%Y-%m-%d")
         current_minutes = now.hour * 60 + now.minute
 
-        # Restanti intervalli di oggi
         for day in forecasts:
             if day.get("date") == today_str:
                 for period in day.get("forecast", []):
@@ -206,7 +199,6 @@ class AMBCurrentPriceSensor(SensorEntity):
                     if start_m > current_minutes:
                         return {"time": start_str, "price": period.get("price"), "date": today_str}
 
-        # Primo intervallo di domani
         for day in forecasts:
             if day.get("date") == tomorrow_str:
                 fc = day.get("forecast", [])
@@ -216,7 +208,6 @@ class AMBCurrentPriceSensor(SensorEntity):
                 if " - " in rng:
                     start_str, _ = rng.split(" - ")
                     return {"time": start_str, "price": fc[0].get("price"), "date": tomorrow_str}
-
         return None
 
     @staticmethod
@@ -229,7 +220,7 @@ class AMBCurrentPriceSensor(SensorEntity):
 
 
 class AMBCurrentDurationSensor(SensorEntity):
-    """Remaining time in current price period with active polling."""
+    """Remaining time in current price period, merging contiguous same-price slots across midnight."""
 
     def __init__(
             self,
@@ -244,7 +235,7 @@ class AMBCurrentDurationSensor(SensorEntity):
         self._attr_device_class = SensorDeviceClass.DURATION
         self._attr_state_class = SensorStateClass.MEASUREMENT
         self._attr_icon = "mdi:timer"
-        self._attr_should_poll = True  # polling ~ ogni 30s
+        self._attr_should_poll = True  # update ~ every 30s
 
     @property
     def available(self) -> bool:
@@ -265,23 +256,82 @@ class AMBCurrentDurationSensor(SensorEntity):
 
     @property
     def native_value(self) -> int | None:
+        """Return remaining minutes in the merged current block (today + contiguous tomorrow if same price)."""
         if not self._coordinator.data:
             return None
-        remaining = self._calculate_remaining_time()
+        remaining = self._calculate_merged_remaining()
         if remaining is not None:
-            _LOGGER.debug("Remaining time calculated: %s minutes", remaining)
+            _LOGGER.debug("Merged remaining time: %s minutes", remaining)
         return max(0, remaining) if remaining is not None else None
 
-    def _calculate_remaining_time(self) -> int | None:
-        if not self._coordinator.data:
-            return None
+    def _calculate_merged_remaining(self) -> int | None:
+        """Find current period today, then merge with following contiguous same-price slots today and tomorrow."""
         forecasts = self._coordinator.data.get("forecasts", [])
         now = dt_util.now()
         today_str = now.strftime("%Y-%m-%d")
+        tomorrow_str = (now + timedelta(days=1)).strftime("%Y-%m-%d")
         current_minutes = now.hour * 60 + now.minute
 
+        # Build today schedule
+        today_sched = self._build_schedule_for_date(forecasts, today_str)
+        if not today_sched:
+            return None
+
+        # Find current slot in today schedule
+        idx = None
+        for i, slot in enumerate(today_sched):
+            if slot["start_m"] <= current_minutes < slot["end_m"]:
+                idx = i
+                break
+        if idx is None:
+            return None
+
+        current_price = today_sched[idx]["price"]
+        merged_end = today_sched[idx]["end_m"]
+
+        # Merge with following slots today if contiguous and same price
+        i = idx + 1
+        while i < len(today_sched):
+            nxt = today_sched[i]
+            if nxt["start_m"] == merged_end and nxt["price"] == current_price:
+                merged_end = nxt["end_m"]
+                i += 1
+            else:
+                break
+
+        # If merged_end reaches end of day and tomorrow is available, merge with tomorrow's contiguous head
+        if merged_end >= 24 * 60:
+            tomorrow_sched = self._build_schedule_for_date(forecasts, tomorrow_str)
+            if tomorrow_sched:
+                j = 0
+                # Start of tomorrow must be contiguous (00:00) and same price
+                while j < len(tomorrow_sched):
+                    slot = tomorrow_sched[j]
+                    if j == 0 and slot["start_m"] == 0 and slot["price"] == current_price:
+                        # Extend beyond midnight: add minutes from tomorrow
+                        merged_end = 24 * 60 + slot["end_m"]
+                        j += 1
+                        # Chain more contiguous same-price slots tomorrow if needed
+                        while j < len(tomorrow_sched):
+                            next_slot = tomorrow_sched[j]
+                            prev_end = merged_end - 24 * 60  # end within tomorrow day-space
+                            if next_slot["start_m"] == prev_end and next_slot["price"] == current_price:
+                                merged_end = 24 * 60 + next_slot["end_m"]
+                                j += 1
+                            else:
+                                break
+                        break
+                    else:
+                        break
+
+        # Remaining is merged_end - now
+        return merged_end - current_minutes
+
+    def _build_schedule_for_date(self, forecasts: list, date_str: str) -> list[dict[str, Any]]:
+        """Return normalized schedule list: [{start_m, end_m, price}] for given date."""
         for day in forecasts:
-            if day.get("date") == today_str:
+            if day.get("date") == date_str:
+                result: list[dict[str, Any]] = []
                 for period in day.get("forecast", []):
                     rng = period.get("hour_range", "")
                     if " - " not in rng:
@@ -289,15 +339,20 @@ class AMBCurrentDurationSensor(SensorEntity):
                     start_str, end_str = rng.split(" - ")
                     start_m = self._time_to_minutes(start_str)
                     end_m = 24 * 60 if end_str == "23:59" else self._time_to_minutes(end_str)
-                    if start_m <= current_minutes < end_m:
-                        return end_m - current_minutes
-        return None
+                    result.append({"start_m": start_m, "end_m": end_m, "price": period.get("price", "unknown")})
+                # Ensure sorted and contiguous logic works
+                result.sort(key=lambda x: x["start_m"])
+                return result
+        return []
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
+        """Attributes include formatted remaining and merged-until timestamp for debug."""
         if not self._coordinator.data:
             return {}
+
         attrs: dict[str, Any] = {"last_calculated": dt_util.now().isoformat()}
+
         remaining = self.native_value
         if remaining is not None:
             if remaining >= 60:
@@ -307,37 +362,80 @@ class AMBCurrentDurationSensor(SensorEntity):
             else:
                 attrs["remaining_formatted"] = f"{remaining}m"
 
-            info = self._get_current_period_info()
-            if info:
-                attrs.update(
-                    {
-                        "current_period_start": info["start"],
-                        "current_period_end": info["end"],
-                        "current_period_price": info.get("price", "").upper(),
-                    }
-                )
+        # Also expose current merged end human-friendly for troubleshooting
+        merged_end_info = self._current_merged_end_info()
+        if merged_end_info:
+            attrs.update(merged_end_info)
+
         return attrs
 
-    def _get_current_period_info(self) -> dict[str, Any] | None:
-        if not self._coordinator.data:
-            return None
+    def _current_merged_end_info(self) -> dict[str, Any] | None:
+        """Return details about the merged end window for visibility."""
         forecasts = self._coordinator.data.get("forecasts", [])
         now = dt_util.now()
         today_str = now.strftime("%Y-%m-%d")
+        tomorrow_str = (now + timedelta(days=1)).strftime("%Y-%m-%d")
         current_minutes = now.hour * 60 + now.minute
 
-        for day in forecasts:
-            if day.get("date") == today_str:
-                for period in day.get("forecast", []):
-                    rng = period.get("hour_range", "")
-                    if " - " not in rng:
-                        continue
-                    start_str, end_str = rng.split(" - ")
-                    start_m = self._time_to_minutes(start_str)
-                    end_m = 24 * 60 if end_str == "23:59" else self._time_to_minutes(end_str)
-                    if start_m <= current_minutes < end_m:
-                        return {"start": start_str, "end": end_str, "price": period.get("price", "")}
-        return None
+        today_sched = self._build_schedule_for_date(forecasts, today_str)
+        if not today_sched:
+            return None
+
+        # Find current slot
+        idx = None
+        for i, slot in enumerate(today_sched):
+            if slot["start_m"] <= current_minutes < slot["end_m"]:
+                idx = i
+                break
+        if idx is None:
+            return None
+
+        current_price = today_sched[idx]["price"]
+        merged_end_m = today_sched[idx]["end_m"]
+
+        # Merge within today
+        i = idx + 1
+        while i < len(today_sched):
+            nxt = today_sched[i]
+            if nxt["start_m"] == merged_end_m and nxt["price"] == current_price:
+                merged_end_m = nxt["end_m"]
+                i += 1
+            else:
+                break
+
+        merged_date = today_str
+        # Merge into tomorrow head if contiguous
+        if merged_end_m >= 24 * 60:
+            tomorrow_sched = self._build_schedule_for_date(forecasts, tomorrow_str)
+            if tomorrow_sched and tomorrow_sched[0]["start_m"] == 0 and tomorrow_sched[0]["price"] == current_price:
+                merged_end_m = 24 * 60 + tomorrow_sched[0]["end_m"]
+                j = 1
+                while j < len(tomorrow_sched):
+                    prev_end = merged_end_m - 24 * 60
+                    nxt = tomorrow_sched[j]
+                    if nxt["start_m"] == prev_end and nxt["price"] == current_price:
+                        merged_end_m = 24 * 60 + nxt["end_m"]
+                        j += 1
+                    else:
+                        break
+                merged_date = tomorrow_str
+
+        # Build HH:MM end for attributes
+        end_total_m = merged_end_m
+        if end_total_m < 24 * 60:
+            end_h = end_total_m // 60
+            end_min = end_total_m % 60
+            end_label = f"{today_str} {end_h:02d}:{end_min:02d}"
+        else:
+            within_tomorrow = end_total_m - 24 * 60
+            end_h = within_tomorrow // 60
+            end_min = within_tomorrow % 60
+            end_label = f"{tomorrow_str} {end_h:02d}:{end_min:02d}"
+
+        return {
+            "merged_until": end_label,
+            "merged_price": current_price.upper(),
+        }
 
     @staticmethod
     def _time_to_minutes(time_str: str) -> int:
