@@ -169,9 +169,10 @@ class AMBDataUpdateCoordinator(DataUpdateCoordinator):
                                 "price": period.get("price"),
                                 "start": start_str,
                                 "end": end_str,
-                                "remaining_minutes": end_minutes - current_minutes,
+                                # Rimuovi remaining_minutes da qui - calcolato nel sensore
                             }
         return None
+
 
     def _find_next_change(self, forecasts: list, now: datetime) -> dict[str, Any] | None:
         """Find next price change."""
