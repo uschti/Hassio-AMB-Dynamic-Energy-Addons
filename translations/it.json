@@ -1,0 +1,33 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configurazione AMB Dynamic Energy",
+        "description": "Configura la tua integrazione AMB Dynamic Energy",
+        "data": {
+          "api_url": "URL API",
+          "update_interval": "Intervallo di aggiornamento (ore)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Impossibile connettersi all'API",
+      "invalid_data": "Dati non validi ricevuti dall'API",
+      "unknown": "Errore imprevisto"
+    },
+    "abort": {
+      "already_configured": "L'integrazione è già configurata"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opzioni AMB Dynamic Energy",
+        "data": {
+          "api_url": "URL API",
+          "update_interval": "Intervallo di aggiornamento (ore)"
+        }
+      }
+    }
+  }
+}

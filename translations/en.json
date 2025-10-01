@@ -1,0 +1,33 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "AMB Dynamic Energy Configuration",
+        "description": "Configure your AMB Dynamic Energy integration",
+        "data": {
+          "api_url": "API URL",
+          "update_interval": "Update interval (hours)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to the API",
+      "invalid_data": "Invalid data received from API",
+      "unknown": "Unexpected error occurred"
+    },
+    "abort": {
+      "already_configured": "Integration is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "AMB Dynamic Energy Options",
+        "data": {
+          "api_url": "API URL",
+          "update_interval": "Update interval (hours)"
+        }
+      }
+    }
+  }
+}
