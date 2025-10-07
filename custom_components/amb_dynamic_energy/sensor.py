@@ -19,7 +19,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import (
+from custom_components.amb_dynamic_energy.const import (
     DOMAIN,
     MANUFACTURER,
     MODEL,
@@ -33,7 +33,7 @@ from .const import (
     ATTR_TOMORROW_SCHEDULE,
     ATTR_LAST_UPDATED,
 )
-from .coordinator import AMBDataUpdateCoordinator
+from custom_components.amb_dynamic_energy.coordinator import AMBDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
