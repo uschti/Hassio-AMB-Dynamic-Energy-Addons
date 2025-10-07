@@ -17,10 +17,14 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Zip files
+      - name: Zip component files
         run: |
           cd custom_components/amb_dynamic_energy
           zip -r ../../../amb_dynamic_energy.zip .
+
+      - name: Append README and HACS.json to zip
+        run: |
+          zip -ur amb_dynamic_energy.zip README.md hacs.json
 
       - name: Create release
         id: create_release
