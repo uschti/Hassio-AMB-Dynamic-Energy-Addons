@@ -20,7 +20,7 @@ jobs:
       - name: Zip component files
         run: |
           cd custom_components/amb_dynamic_energy
-          zip -r ../../../amb_dynamic_energy.zip .
+          zip -r ../../amb_dynamic_energy.zip .
 
       - name: Append README and HACS.json to zip
         run: |
