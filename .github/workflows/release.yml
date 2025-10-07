@@ -19,7 +19,9 @@ jobs:
 
       - name: Zip files
         run: |
-          zip -r amb_dynamic_energy.zip custom_components HACS.json README.md constant.py init.py coordinator.py
+          zip -r amb_dynamic_energy.zip README.md hacs.json
+          cd custom_components
+          zip -r ../amb_dynamic_energy.zip amb_dynamic_energy
 
       - name: Create release
         id: create_release
