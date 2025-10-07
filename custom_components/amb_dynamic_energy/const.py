@@ -22,7 +22,7 @@ SENSOR_PRICE_SCHEDULE: Final = "price_schedule"
 
 # Device Information
 MANUFACTURER: Final = "Andrea Pellegrini @uschti (https://github.com/uschti)"
-MODEL: Final = "Dynamic Energy Pricing"
+MODEL: Final = "Dynamic Energy Rate Pricing"
 
 # Configuration Keys
 CONF_API_URL: Final = "api_url"

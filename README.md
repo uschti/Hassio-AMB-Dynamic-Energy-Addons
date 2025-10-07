@@ -68,4 +68,4 @@ Made with ❤️ by Andrea Pellegrini ([@uschti](https://github.com/uschti))
 
 ---
 
-![Powered for AMB customers](https://github.com/uschti/Hassio-AMB-Dynamic-Energy-Addons/blob/main/docs/logo.png)
+![Powered for AMB customers](https://raw.githubusercontent.com/uschti/Hassio-AMB-Dynamic-Energy-Addons/1c59e71ef3d07580056e520300f5301409484fa5/custom_components/amb_dynamic_energy/amb_dynamic_energy.png?token=GHSAT0AAAAAADMR7AOYPG2Y6DJZVMUFJLKY2HFLFLA)

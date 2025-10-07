@@ -34,8 +34,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         identifiers={(DOMAIN, entry.entry_id)},
         manufacturer=MANUFACTURER,
         model=MODEL,
-        name="AMB Dynamic Energy",
-        sw_version="1.0.0",
+        name="AMB Dynamic Energy Rate",
+        sw_version="1.1.0",
     )
 
     # Forward ai platform e ATTENDI il completamento (API moderna e supportata)

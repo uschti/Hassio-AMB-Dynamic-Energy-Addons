@@ -73,10 +73,10 @@ class AMBBaseSensor(CoordinatorEntity[AMBDataUpdateCoordinator], SensorEntity):
     def device_info(self) -> DeviceInfo:
         return DeviceInfo(
             identifiers={(DOMAIN, self._config_entry.entry_id)},
-            name="AMB Dynamic Energy",
+            name="AMB Dynamic Energy Rate",
             manufacturer=MANUFACTURER,
             model=MODEL,
-            sw_version="1.0.0",
+            sw_version="1.1.0",
         )
 
 
@@ -103,10 +103,10 @@ class AMBCurrentPriceSensor(SensorEntity):
     def device_info(self) -> DeviceInfo:
         return DeviceInfo(
             identifiers={(DOMAIN, self._config_entry.entry_id)},
-            name="AMB Dynamic Energy",
+            name="AMB Dynamic Energy Rate",
             manufacturer=MANUFACTURER,
             model=MODEL,
-            sw_version="1.0.0",
+            sw_version="1.1.0",
         )
 
     async def async_update(self) -> None:
@@ -245,10 +245,10 @@ class AMBCurrentDurationSensor(SensorEntity):
     def device_info(self) -> DeviceInfo:
         return DeviceInfo(
             identifiers={(DOMAIN, self._config_entry.entry_id)},
-            name="AMB Dynamic Energy",
+            name="AMB Dynamic Energy Rate",
             manufacturer=MANUFACTURER,
             model=MODEL,
-            sw_version="1.0.0",
+            sw_version="1.1.0",
         )
 
     async def async_update(self) -> None:
