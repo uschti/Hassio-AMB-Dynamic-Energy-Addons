@@ -11,7 +11,6 @@ This Home Assistant integration provides energy price forecasting (Low / High) f
 - Full schedule sensor with forecast data for charts
 - Compatible with [ApexCharts Card](https://github.com/RomRider/apexcharts-card) for visualization
 - Efficient polling with caching and retry logic
-- Configuration via UI supporting API endpoint and update interval
 
 ## Installation
 
@@ -27,7 +26,7 @@ To install it via HACS, add this repository manually as a custom repository:
 4. Choose "Integration" as category and confirm
 5. Search for "AMB Dynamic Energy" in HACS and install
 6. Restart Home Assistant
-7. Add the integration from the UI and configure the API endpoint
+7. Add the integration from the UI
 
 ### Manual Installation
 
@@ -38,9 +37,7 @@ To install it via HACS, add this repository manually as a custom repository:
 
 ## Configuration
 
-- Use the integration UI to set the AMB API endpoint URL (defaults to the official URL)
-- Set the update interval (default: 2 hours)
-- Supports fast reload and switching API URLs for testing with mock servers
+- None
 
 ## Important Notice
 
