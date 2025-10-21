@@ -19,15 +19,15 @@ PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up AMB Dynamic Energy from a config entry."""
-    # Inizializza il coordinator e fa il primo refresh
+    # Initialize the coordinator and make first refresh
     coordinator = AMBDataUpdateCoordinator(hass, entry)
     await coordinator.async_config_entry_first_refresh()
 
-    # Memorizza il coordinator nei dati runtime dell’integrazione
+    # Store the coordinator in the integration runtime data
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = coordinator
 
-    # Registra il “device” nel Device Registry
+    # Register the “device” in the Device Registry
     device_registry = dr.async_get(hass)
     device_registry.async_get_or_create(
         config_entry_id=entry.entry_id,
@@ -38,7 +38,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         sw_version="1.1.0",
     )
 
-    # Forward ai platform e ATTENDI il completamento (API moderna e supportata)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True
