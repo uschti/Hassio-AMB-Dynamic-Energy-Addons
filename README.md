@@ -49,10 +49,6 @@ The provided API endpoint is public but unofficially integrated; use at your own
 
 This project is licensed under the **MIT License**.
 
-Please note this license permits use **for personal, educational, and open-source projects only**.
-
-If you plan to distribute or commercialize this integration or part of its code in a paid product or service, please contact the author for licensing terms.
-
 ## Development & Support
 
 For bugs or feature requests, please open an issue on the [GitHub repository](https://github.com/uschti/Hassio-AMB-Dynamic-Energy-Addons).
