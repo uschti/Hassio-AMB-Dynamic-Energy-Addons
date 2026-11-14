@@ -164,6 +164,22 @@ async def test_scheduled_refresh_in_window(
 
 
 @pytest.mark.freeze_time(NOW)
+@pytest.mark.parametrize("api_down", [False, True])
+async def test_quarter_hour_timer_is_cancelled(
+    hass: HomeAssistant, mock_client: MagicMock, mock_config_entry: MockConfigEntry, api_down: bool
+) -> None:
+    """The tick is cancelled on unload and after a failed first setup, so retries never stack timers."""
+    if api_down:
+        mock_client.async_get_schedule.side_effect = AMBBellinzonaConnectionError("down")
+    with patch("custom_components.amb_bellinzona.coordinator.async_track_time_change") as track:
+        await setup_integration(hass, mock_config_entry)
+        if not api_down:
+            assert await hass.config_entries.async_unload(mock_config_entry.entry_id)
+    track.assert_called_once()
+    track.return_value.assert_called_once()
+
+
+@pytest.mark.freeze_time(NOW)
 async def test_unload_and_remove(
     hass: HomeAssistant, mock_client: MagicMock, mock_config_entry: MockConfigEntry, hass_storage: dict
 ) -> None:
