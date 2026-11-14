@@ -1,13 +1,13 @@
 {
-  "domain": "amb_dynamic_energy",
-  "name": "AMB Dynamic Energy Rate Pricing",
+  "domain": "amb_bellinzona",
+  "name": "AMB Bellinzona",
   "codeowners": ["@uschti"],
   "config_flow": true,
   "documentation": "https://github.com/uschti/Hassio-AMB-Dynamic-Energy-Addons",
   "integration_type": "service",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/uschti/Hassio-AMB-Dynamic-Energy-Addons/issues",
-  "requirements": ["aiohttp>=3.8.0"],
-  "version": "1.1.0",
-  "loggers": ["custom_components.amb_dynamic_energy"]
+  "requirements": ["amb-bellinzona==0.1.0"],
+  "single_config_entry": true,
+  "version": "3.0.0"
 }

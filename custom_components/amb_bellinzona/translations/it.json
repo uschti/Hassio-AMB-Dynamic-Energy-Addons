@@ -1,0 +1,30 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "description": "Configura la tariffa dinamica AMB Bellinzona (Tariffa Dinamica). Non serve nessuna configurazione."
+      }
+    },
+    "error": {
+      "cannot_connect": "Impossibile collegarsi all'API tariffe AMB",
+      "unknown": "Errore imprevisto"
+    },
+    "abort": {
+      "single_instance_allowed": "Già configurata. È possibile una sola configurazione."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "tariff": {
+        "name": "Tariffa",
+        "state": {
+          "high": "Alta",
+          "low": "Bassa"
+        }
+      },
+      "next_change": {
+        "name": "Prossimo cambio tariffa"
+      }
+    }
+  }
+}
