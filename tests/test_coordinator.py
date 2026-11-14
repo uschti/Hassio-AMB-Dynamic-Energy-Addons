@@ -6,7 +6,7 @@ import pytest
 
 from homeassistant.core import HomeAssistant
 
-from custom_components.amb_bellinzona.const import AMB_TIME_ZONE
+from custom_components.amb_bellinzona.const import AMB_TIME_ZONE, RETRY_INTERVAL
 from custom_components.amb_bellinzona.coordinator import fetch_due, has_tomorrow, next_fetch
 
 from .conftest import make_schedule
@@ -47,7 +47,7 @@ async def test_has_tomorrow(hass: HomeAssistant) -> None:
 
 
 async def test_has_tomorrow_dst_spring_forward(hass: HomeAssistant) -> None:
-    """2027-03-28 has 23 h: tomorrow ends at local midnight, not +24 h."""
+    """2027-03-28 has 23 h: tomorrow ends at Swiss midnight, not +24 h."""
     day = date(2027, 3, 27)
     end = midnight(date(2027, 3, 29))
     full = make_schedule(midnight(day), end)
@@ -81,11 +81,11 @@ async def test_next_fetch_before_window_is_today(hass: HomeAssistant) -> None:
 
 async def test_next_fetch_retries_after_window_without_tomorrow(hass: HomeAssistant) -> None:
     now = local(TODAY, 14)
-    assert next_fetch(today_only(), now) == now + timedelta(minutes=30)
-    assert next_fetch(None, now) == now + timedelta(minutes=30)
+    assert next_fetch(today_only(), now) == now + RETRY_INTERVAL
+    assert next_fetch(None, now) == now + RETRY_INTERVAL
 
 
 async def test_next_fetch_retries_on_gap(hass: HomeAssistant) -> None:
     now = local(TODAY, 10)
     gap = make_schedule(midnight(TODAY), local(TODAY, 9))
-    assert next_fetch(gap, now) == now + timedelta(minutes=30)
+    assert next_fetch(gap, now) == now + RETRY_INTERVAL

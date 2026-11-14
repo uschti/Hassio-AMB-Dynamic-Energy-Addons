@@ -43,20 +43,27 @@ async def test_setup_uses_storage_without_fetching(
     mock_client.async_get_schedule.assert_not_awaited()
 
 
-@pytest.mark.freeze_time("2026-11-14T13:00:00+00:00")  # 14:00 local, after the window
+@pytest.mark.freeze_time("2026-11-14T13:00:00+00:00")  # 14:00 Swiss, after the window
 async def test_setup_fetches_when_stored_lacks_tomorrow_after_window(
     hass: HomeAssistant, mock_client: MagicMock, mock_config_entry: MockConfigEntry, hass_storage: dict, schedule: TariffSchedule
 ) -> None:
-    _store(hass_storage, schedule)  # ends at local midnight: no tomorrow
+    _store(hass_storage, schedule)  # ends at Swiss midnight: no tomorrow
     await setup_integration(hass, mock_config_entry)
     mock_client.async_get_schedule.assert_awaited_once()
 
 
 @pytest.mark.freeze_time(NOW)
+@pytest.mark.parametrize(
+    "data",
+    [
+        [{"bogus": 1}],
+        [{"start": "2026-11-14T10:00:00", "end": "2026-11-14T10:15:00", "tariff": "high"}],  # no time zone
+    ],
+)
 async def test_corrupt_storage_is_ignored(
-    hass: HomeAssistant, mock_client: MagicMock, mock_config_entry: MockConfigEntry, hass_storage: dict
+    hass: HomeAssistant, mock_client: MagicMock, mock_config_entry: MockConfigEntry, hass_storage: dict, data: list
 ) -> None:
-    hass_storage[DOMAIN] = {"version": 1, "minor_version": 1, "key": DOMAIN, "data": [{"bogus": 1}]}
+    hass_storage[DOMAIN] = {"version": 1, "minor_version": 1, "key": DOMAIN, "data": data}
     await setup_integration(hass, mock_config_entry)
     assert mock_config_entry.state is ConfigEntryState.LOADED
     mock_client.async_get_schedule.assert_awaited_once()
@@ -81,7 +88,7 @@ async def test_fetch_failure_uses_cache(
     freezer: FrozenDateTimeFactory,
 ) -> None:
     """API down but the cache covers now: loaded, valid state, and only one warning across retries."""
-    freezer.move_to("2026-11-14T13:00:00+00:00")  # 14:00 local
+    freezer.move_to("2026-11-14T13:00:00+00:00")  # 14:00 Swiss
     _store(hass_storage, schedule)
     mock_client.async_get_schedule.side_effect = AMBBellinzonaConnectionError("down")
     await setup_integration(hass, mock_config_entry)
@@ -95,7 +102,7 @@ async def test_fetch_failure_uses_cache(
 
     assert mock_client.async_get_schedule.await_count > calls  # the retry really ran
     assert caplog.text.count("using the cached one") == 1
-    assert hass.states.get("sensor.amb_bellinzona_tariff").state == "high"  # 14:30 local
+    assert hass.states.get("sensor.amb_bellinzona_tariff").state == "high"  # 14:30 Swiss
 
 
 async def test_one_fetch_per_day_when_ha_runs_in_utc(
@@ -128,7 +135,7 @@ async def test_retry_backoff(
     freezer: FrozenDateTimeFactory,
 ) -> None:
     """Failed requests retry after 1, 5 and 15 minutes, then every 30 minutes."""
-    freezer.move_to("2026-11-14T13:00:00+00:00")  # 14:00 local, tomorrow missing
+    freezer.move_to("2026-11-14T13:00:00+00:00")  # 14:00 Swiss, tomorrow missing
     _store(hass_storage, schedule)
     mock_client.async_get_schedule.side_effect = AMBBellinzonaConnectionError("down")
     await setup_integration(hass, mock_config_entry)
@@ -146,7 +153,7 @@ async def test_retry_backoff(
 async def test_scheduled_refresh_in_window(
     hass: HomeAssistant, mock_client: MagicMock, mock_config_entry: MockConfigEntry, freezer: FrozenDateTimeFactory
 ) -> None:
-    """Set up at 10:00 local; the next fetch fires at 12:30 local (jitter patched to 0)."""
+    """Set up at 10:00 Swiss; the next fetch fires at 12:30 Swiss (jitter patched to 0)."""
     freezer.move_to(NOW)
     with patch("custom_components.amb_bellinzona.coordinator.random.uniform", return_value=0):
         await setup_integration(hass, mock_config_entry)
@@ -179,7 +186,7 @@ async def test_unavailable_when_cache_gap_and_api_down(
 ) -> None:
     """Warn once while the cache covers now, log recovery once, go unavailable on a real gap."""
     caplog.set_level(logging.INFO)
-    freezer.move_to("2026-11-14T11:35:00+00:00")  # 12:35 local: window open, tomorrow missing
+    freezer.move_to("2026-11-14T11:35:00+00:00")  # 12:35 Swiss: window open, tomorrow missing
     _store(hass_storage, schedule)
     mock_client.async_get_schedule.side_effect = AMBBellinzonaConnectionError("down")
     await setup_integration(hass, mock_config_entry)
@@ -193,7 +200,7 @@ async def test_unavailable_when_cache_gap_and_api_down(
     assert caplog.text.count("Fetching the tariff schedule works again") == 1
 
     mock_client.async_get_schedule.side_effect = AMBBellinzonaConnectionError("down")
-    freezer.move_to("2026-11-14T23:30:00+00:00")  # 00:30 local the next day: past the schedule end
+    freezer.move_to("2026-11-14T23:30:00+00:00")  # 00:30 Swiss the next day: past the schedule end
     async_fire_time_changed(hass)
     await hass.async_block_till_done()
     assert hass.states.get("sensor.amb_bellinzona_tariff").state == "unavailable"

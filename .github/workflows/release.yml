@@ -17,10 +17,6 @@ jobs:
           cd custom_components/amb_bellinzona
           zip -r ../../amb_bellinzona.zip .
 
-      - name: Append README and HACS.json to zip
-        run: |
-          zip -ur amb_bellinzona.zip README.md hacs.json
-
       - name: Create release
         id: create_release
         uses: softprops/action-gh-release@v2
