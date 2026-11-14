@@ -24,7 +24,7 @@ Go to Settings → Devices & services → Add integration → "AMB Bellinzona". 
 
 ## Entities
 
-All entities belong to the "AMB Bellinzona" device.
+All entities belong to the "AMB Bellinzona" device. The entity IDs below are the English ones; Home Assistant names new entities in its system language, so an Italian installation gets for example `calendar.amb_bellinzona_tariffa_alta`.
 
 | Entity | Type | Description |
 | --- | --- | --- |

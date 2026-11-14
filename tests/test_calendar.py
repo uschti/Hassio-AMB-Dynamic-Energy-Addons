@@ -7,6 +7,9 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry, async_
 
 from homeassistant.components.calendar import DOMAIN as CALENDAR_DOMAIN, SERVICE_GET_EVENTS
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
+
+from custom_components.amb_bellinzona.const import DOMAIN
 
 from .conftest import NOW, setup_integration
 
@@ -69,3 +72,14 @@ async def test_state_follows_the_periods(
     state = hass.states.get(ENTITY_ID)
     assert state.state == "off"
     assert "start_time" not in state.attributes
+
+
+async def test_event_title_is_translated(
+    hass: HomeAssistant, mock_client: MagicMock, mock_config_entry: MockConfigEntry, freezer: FrozenDateTimeFactory
+) -> None:
+    await hass.config.async_update(language="it")
+    freezer.move_to(NOW)
+    await setup_integration(hass, mock_config_entry)
+    entity_id = er.async_get(hass).async_get_entity_id("calendar", DOMAIN, f"{mock_config_entry.entry_id}_high_tariff")
+    assert entity_id == "calendar.amb_bellinzona_tariffa_alta"  # HA names new entities in the system language
+    assert hass.states.get(entity_id).attributes["message"] == "Tariffa alta"

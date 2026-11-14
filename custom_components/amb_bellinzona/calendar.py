@@ -11,7 +11,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from .coordinator import AMBBellinzonaConfigEntry, AMBBellinzonaCoordinator
+from .coordinator import AMBBellinzonaConfigEntry
 from .entity import AMBBellinzonaEntity
 
 # Coordinator-driven: no parallel update limit needed.
@@ -24,16 +24,13 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up the calendar."""
-    async_add_entities([AMBBellinzonaCalendar(entry.runtime_data)])
+    async_add_entities([AMBBellinzonaCalendar(entry.runtime_data, "high_tariff")])
 
 
 class AMBBellinzonaCalendar(AMBBellinzonaEntity, CalendarEntity):
     """One event per high-tariff period of the cached schedule (today, and tomorrow once published)."""
 
     _attr_translation_key = "high_tariff"
-
-    def __init__(self, coordinator: AMBBellinzonaCoordinator) -> None:
-        super().__init__(coordinator, "high_tariff")
 
     def _events(self, start: datetime, end: datetime) -> list[CalendarEvent]:
         return [
@@ -47,7 +44,8 @@ class AMBBellinzonaCalendar(AMBBellinzonaEntity, CalendarEntity):
     @property
     def event(self) -> CalendarEvent | None:
         """The current or next high-tariff period."""
-        return next(iter(self._events(dt_util.utcnow(), datetime.max.replace(tzinfo=UTC))), None)
+        events = self._events(dt_util.utcnow(), datetime.max.replace(tzinfo=UTC))
+        return events[0] if events else None
 
     async def async_get_events(self, hass: HomeAssistant, start_date: datetime, end_date: datetime) -> list[CalendarEvent]:
         """Return the high-tariff periods overlapping the requested range."""
