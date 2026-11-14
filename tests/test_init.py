@@ -176,6 +176,7 @@ async def test_quarter_hour_timer_is_cancelled(
         if not api_down:
             assert await hass.config_entries.async_unload(mock_config_entry.entry_id)
     track.assert_called_once()
+    assert track.call_args.kwargs == {"minute": (0, 15, 30, 45), "second": 0}
     track.return_value.assert_called_once()
 
 
