@@ -18,7 +18,7 @@ from homeassistant.core import HomeAssistant
 from custom_components.amb_bellinzona.const import DOMAIN
 
 FIXTURE = Path(__file__).parent / "fixtures" / "tariff_schedule_2026-11-14.json"
-# Covers 2026-11-12 00:15 UTC .. 2026-11-15 00:00 local; 10:00 local on the 14th is HIGH (07:00-16:30).
+# Covers 2026-11-12 00:15 UTC .. 2026-11-15 00:00 Swiss; 10:00 Swiss on the 14th is HIGH (07:00-16:30).
 NOW = "2026-11-14T09:00:00+00:00"
 
 

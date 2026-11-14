@@ -27,7 +27,7 @@ async def test_sensors_and_quarter_hour_tick(
     mock_client.async_get_schedule.return_value = TariffSchedule(
         schedule.slots + make_schedule(schedule.end, schedule.end + timedelta(days=1)).slots
     )
-    freezer.move_to(NOW)  # 10:00 local
+    freezer.move_to(NOW)  # 10:00 Swiss
     await setup_integration(hass, mock_config_entry)
 
     tariff = hass.states.get("sensor.amb_bellinzona_tariff")
@@ -35,7 +35,7 @@ async def test_sensors_and_quarter_hour_tick(
     assert tariff.attributes["options"] == ["high", "low"]
     assert hass.states.get("sensor.amb_bellinzona_next_tariff_change").state == "2026-11-14T15:30:00+00:00"
 
-    freezer.move_to("2026-11-14T15:30:00+00:00")  # 16:30 local
+    freezer.move_to("2026-11-14T15:30:00+00:00")  # 16:30 Swiss
     async_fire_time_changed(hass)
     await hass.async_block_till_done()
     assert hass.states.get("sensor.amb_bellinzona_tariff").state == "low"

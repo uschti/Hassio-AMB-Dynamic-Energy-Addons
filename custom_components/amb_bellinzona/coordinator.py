@@ -69,11 +69,17 @@ def _dump(schedule: TariffSchedule) -> list[dict[str, str]]:
     ]
 
 
+def _aware(value: str) -> datetime:
+    if (parsed := datetime.fromisoformat(value)).tzinfo is None:
+        raise ValueError(f"Timestamp without time zone: {value}")
+    return parsed
+
+
 def _load(data: Any) -> TariffSchedule | None:
     try:
         return TariffSchedule(
             tuple(
-                TariffSlot(datetime.fromisoformat(i["start"]), datetime.fromisoformat(i["end"]), Tariff(i["tariff"]))
+                TariffSlot(_aware(i["start"]), _aware(i["end"]), Tariff(i["tariff"]))
                 for i in data
             )
         )
