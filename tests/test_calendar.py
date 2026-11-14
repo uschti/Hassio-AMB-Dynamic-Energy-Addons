@@ -22,26 +22,33 @@ async def _move(hass: HomeAssistant, freezer: FrozenDateTimeFactory, when: str) 
     await hass.async_block_till_done()
 
 
-async def _events(hass: HomeAssistant, start: str, end: str) -> list[tuple[str, str, str]]:
+async def _events(hass: HomeAssistant, start: str, end: str, entity_id: str = ENTITY_ID) -> list[tuple[str, str, str]]:
     response = await hass.services.async_call(
         CALENDAR_DOMAIN,
         SERVICE_GET_EVENTS,
-        {"entity_id": ENTITY_ID, "start_date_time": start, "end_date_time": end},
+        {"entity_id": entity_id, "start_date_time": start, "end_date_time": end},
         blocking=True,
         return_response=True,
     )
-    return [(e["start"], e["end"], e["summary"]) for e in response[ENTITY_ID]["events"]]
+    return [(e["start"], e["end"], e["summary"]) for e in response[entity_id]["events"]]
 
 
 async def test_events_match_the_amb_app(
     hass: HomeAssistant, mock_client: MagicMock, mock_config_entry: MockConfigEntry, freezer: FrozenDateTimeFactory
 ) -> None:
-    """Verified against the AMB app on 2026-11-14: high 07:00-16:30 and 20:00-23:00."""
+    """Verified against the AMB app on 2026-11-14: high 07:00-16:30 and 20:00-23:00, low otherwise."""
     freezer.move_to(NOW)
     await setup_integration(hass, mock_config_entry)
     assert await _events(hass, "2026-11-14T00:00:00+01:00", "2026-11-15T00:00:00+01:00") == [
         ("2026-11-14T07:00:00+01:00", "2026-11-14T16:30:00+01:00", "High tariff"),
         ("2026-11-14T20:00:00+01:00", "2026-11-14T23:00:00+01:00", "High tariff"),
+    ]
+    assert await _events(
+        hass, "2026-11-14T00:00:00+01:00", "2026-11-15T00:00:00+01:00", "calendar.amb_bellinzona_low_tariff"
+    ) == [
+        ("2026-11-13T23:00:00+01:00", "2026-11-14T07:00:00+01:00", "Low tariff"),
+        ("2026-11-14T16:30:00+01:00", "2026-11-14T20:00:00+01:00", "Low tariff"),
+        ("2026-11-14T23:00:00+01:00", "2026-11-15T00:00:00+01:00", "Low tariff"),  # the schedule ends at midnight
     ]
     # Ranges are half-open: touching a period at its edge does not include it.
     assert await _events(hass, "2026-11-14T00:00:00+01:00", "2026-11-14T07:00:00+01:00") == []
