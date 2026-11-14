@@ -1,64 +1,69 @@
-# Azienda Multiservizi Bellinzona (AMB) Dynamic Energy Integration
+# AMB Bellinzona
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg)](https://hacs.xyz/)
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz/)
 
-This Home Assistant integration provides energy price forecasting (Low / High) for the Dynamic Energy Rate ([Tariffa dinamica](https://www.amb.ch/approfondimenti/tariffa-dinamica/)) of Azienda Multiservizi Bellinzona (AMB).
+Home Assistant integration for the dynamic electricity tariff ([Tariffa Dinamica](https://www.amb.ch/approfondimenti/tariffa-dinamica/)) of Azienda Multiservizi Bellinzona (AMB). It tells you whether the current tariff is high or low and when it changes next, so you can run boilers, heat pumps or EV chargers in the cheap slots.
 
-## Features
-
-- Current electricity price sensor (Low / High)
-- Remaining duration of the current price slot sensor
-- Full schedule sensor with forecast data for charts
-- Compatible with [ApexCharts Card](https://github.com/RomRider/apexcharts-card) for visualization
-- Efficient polling with caching and retry logic
+Only the AMB "Tariffa Dinamica" product is supported. From 2027 AMB's standard tariff is a single rate, so there is nothing to schedule for it.
 
 ## Installation
 
-### Via HACS (Custom Repository)
+### HACS (custom repository)
 
-Currently, this integration is not yet included in the official HACS default store.
+1. In Home Assistant open HACS, then the three-dot menu, then "Custom repositories".
+2. Add `https://github.com/uschti/Hassio-AMB-Dynamic-Energy-Addons` with category "Integration".
+3. Search for "AMB Bellinzona", download it and restart Home Assistant.
 
-To install it via HACS, add this repository manually as a custom repository:
+### Manual
 
-1. Go to Home Assistant → HACS → Integrations
-2. Click the three-dot menu and select "Custom repositories"
-3. Enter the URL of this repository (`https://github.com/uschti/Hassio-AMB-Dynamic-Energy-Addons`)
-4. Choose "Integration" as category and confirm
-5. Search for "AMB Dynamic Energy" in HACS and install
-6. Restart Home Assistant
-7. Add the integration from the UI
-
-### Manual Installation
-
-1. Download or clone this repository
-2. Copy the `custom_components/amb_dynamic_energy` folder into your Home Assistant `custom_components` directory
-3. Restart Home Assistant
-4. Configure via UI
+Copy `custom_components/amb_bellinzona` into the `custom_components` directory of your Home Assistant configuration and restart.
 
 ## Configuration
 
-- None
+Go to Settings → Devices & services → Add integration → "AMB Bellinzona". There are no fields to fill in; only one instance can be configured.
 
-## Important Notice
+## Entities
 
-This integration is **not officially approved or endorsed by Azienda Multiservizi Bellinzona (AMB)**.
+All entities belong to the "AMB Bellinzona" device.
 
-The provided API endpoint is public but unofficially integrated; use at your own discretion.
+| Entity | Type | Description |
+| --- | --- | --- |
+| `sensor.amb_bellinzona_tariff` | enum | Current tariff: `high` or `low` |
+| `sensor.amb_bellinzona_next_tariff_change` | timestamp | When the tariff changes next (the frontend shows it as a live countdown) |
+
+## How data is fetched
+
+Data comes from AMB's official public API through the [`amb-bellinzona`](https://pypi.org/project/amb-bellinzona/) library. AMB publishes tomorrow's schedule by 12:00, so the integration makes one call per day at a random minute between 12:30 and 13:30 Swiss time. If a request fails it retries after 1, 5 and 15 minutes, then every 30 minutes; if AMB has not published tomorrow yet, it checks again every 30 minutes. The schedule is cached on disk, so restarts do not trigger new calls. If the very first setup cannot reach the API, Home Assistant retries the setup with its own backoff until it succeeds.
+
+## Automation example
+
+```yaml
+triggers:
+  - trigger: state
+    entity_id: sensor.amb_bellinzona_tariff
+    to: "low"
+actions:
+  - action: switch.turn_on
+    target:
+      entity_id: switch.boiler
+```
+
+## Migrating from `amb_dynamic_energy`
+
+This integration replaces the old `amb_dynamic_energy` component, which used a third-party proxy. To migrate:
+
+1. Update the repository through HACS (the old and the new integration ship in the same repository).
+2. Delete the old "AMB Dynamic Energy" integration entry in Settings → Devices & services.
+3. Delete the leftover `custom_components/amb_dynamic_energy` folder.
+4. Restart Home Assistant.
+5. Add "AMB Bellinzona" in Settings → Devices & services.
+
+Entity IDs changed (the old three sensors, `last_calculated` and `chart_data` are gone), so update your automations and dashboards to the entities listed above.
+
+## Removal
+
+Delete the integration from Settings → Devices & services, then remove the files (HACS: remove the repository) and restart.
 
 ## License
 
-This project is licensed under the **MIT License**.
-
-## Development & Support
-
-For bugs or feature requests, please open an issue on the [GitHub repository](https://github.com/uschti/Hassio-AMB-Dynamic-Energy-Addons).
-
-Contributions are welcome!
-
----
-
-Made with ❤️ by Andrea Pellegrini ([@uschti](https://github.com/uschti))
-
----
-
-![Powered for AMB customers](https://raw.githubusercontent.com/uschti/Hassio-AMB-Dynamic-Energy-Addons/refs/heads/main/custom_components/amb_dynamic_energy/amb_dynamic_energy.png)
+MIT

@@ -1,9 +1,7 @@
 {
-  "name": "AMB Dynamic Energy Rate Pricing",
-  "hacs": "1.32.0",
-  "domains": ["amb_dynamic_energy"],
-  "homeassistant": "2023.1.0",
+  "name": "AMB Bellinzona",
+  "homeassistant": "2025.6.0",
   "render_readme": true,
   "zip_release": true,
-  "filename": "amb_dynamic_energy.zip"
+  "filename": "amb_bellinzona.zip"
 }

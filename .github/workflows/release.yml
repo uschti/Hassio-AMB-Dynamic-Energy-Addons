@@ -10,26 +10,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
+        uses: actions/checkout@v4
 
       - name: Zip component files
         run: |
-          cd custom_components/amb_dynamic_energy
-          zip -r ../../amb_dynamic_energy.zip .
+          cd custom_components/amb_bellinzona
+          zip -r ../../amb_bellinzona.zip .
 
       - name: Append README and HACS.json to zip
         run: |
-          zip -ur amb_dynamic_energy.zip README.md hacs.json
+          zip -ur amb_bellinzona.zip README.md hacs.json
 
       - name: Create release
         id: create_release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
-          files: amb_dynamic_energy.zip
+          files: amb_bellinzona.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
