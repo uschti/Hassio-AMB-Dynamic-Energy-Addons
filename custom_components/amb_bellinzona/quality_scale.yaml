@@ -12,9 +12,15 @@ rules:
   docs-actions:
     status: exempt
     comment: The integration registers no actions.
-  docs-high-level-description: todo
-  docs-installation-instructions: todo
-  docs-removal-instructions: todo
+  docs-high-level-description:
+    status: done
+    comment: Covered by README.md; moves to home-assistant.io with the core port.
+  docs-installation-instructions:
+    status: done
+    comment: Covered by README.md; moves to home-assistant.io with the core port.
+  docs-removal-instructions:
+    status: done
+    comment: Covered by README.md; moves to home-assistant.io with the core port.
   entity-event-setup:
     status: exempt
     comment: Entities do not subscribe to events; the coordinator drives updates.

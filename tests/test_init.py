@@ -98,6 +98,27 @@ async def test_fetch_failure_uses_cache(
     assert hass.states.get("sensor.amb_bellinzona_tariff").state == "high"  # 14:30 local
 
 
+async def test_one_fetch_per_day_when_ha_runs_in_utc(
+    hass: HomeAssistant,
+    mock_client: MagicMock,
+    mock_config_entry: MockConfigEntry,
+    schedule: TariffSchedule,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """AMB's days are Swiss: a full today+tomorrow schedule must not trigger fetches when HA is in UTC."""
+    await hass.config.async_set_time_zone("UTC")
+    mock_client.async_get_schedule.return_value = TariffSchedule(
+        schedule.slots + make_schedule(schedule.end, schedule.end + timedelta(days=1)).slots
+    )
+    freezer.move_to("2026-11-14T13:00:00+00:00")  # 14:00 Swiss, after the window
+    await setup_integration(hass, mock_config_entry)
+    for _ in range(20):  # until 00:00 Swiss
+        freezer.tick(timedelta(minutes=30))
+        async_fire_time_changed(hass)
+        await hass.async_block_till_done()
+    mock_client.async_get_schedule.assert_awaited_once()
+
+
 async def test_retry_backoff(
     hass: HomeAssistant,
     mock_client: MagicMock,

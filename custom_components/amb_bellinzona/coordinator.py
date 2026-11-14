@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 import logging
 import random
 from typing import Any
@@ -15,35 +15,43 @@ from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN, FETCH_WINDOW_LENGTH, FETCH_WINDOW_START, RETRY_BACKOFF, RETRY_INTERVAL, STORAGE_VERSION
+from .const import AMB_TIME_ZONE, DOMAIN, FETCH_WINDOW_LENGTH, FETCH_WINDOW_START, RETRY_BACKOFF, RETRY_INTERVAL, STORAGE_VERSION
 
 _LOGGER = logging.getLogger(__name__)
 
 type AMBBellinzonaConfigEntry = ConfigEntry[AMBBellinzonaCoordinator]
 
 
+def _amb_date(now: datetime) -> date:
+    return now.astimezone(AMB_TIME_ZONE).date()
+
+
+def _start_of_day(day: date) -> datetime:
+    return datetime.combine(day, time(), AMB_TIME_ZONE)
+
+
 def _window_start(day: date) -> datetime:
-    return dt_util.start_of_local_day(day) + FETCH_WINDOW_START
+    return _start_of_day(day) + FETCH_WINDOW_START
 
 
 def has_tomorrow(schedule: TariffSchedule, now: datetime) -> bool:
-    """Return True when the schedule covers all of tomorrow (local days, DST-safe)."""
-    day_after = dt_util.as_local(now).date() + timedelta(days=2)
-    return schedule.end is not None and schedule.end >= dt_util.start_of_local_day(day_after)
+    """Return True when the schedule covers all of tomorrow (Swiss days, DST-safe)."""
+    day_after = _amb_date(now) + timedelta(days=2)
+    return schedule.end is not None and schedule.end >= _start_of_day(day_after)
 
 
 def fetch_due(schedule: TariffSchedule | None, now: datetime) -> bool:
     """Return True when the API has (or may have) data we need."""
     if schedule is None or schedule.tariff_at(now) is None:
         return True
-    return not has_tomorrow(schedule, now) and now >= _window_start(dt_util.as_local(now).date())
+    return not has_tomorrow(schedule, now) and now >= _window_start(_amb_date(now))
 
 
 def next_fetch(schedule: TariffSchedule | None, now: datetime) -> datetime:
     """Return a random time in the next useful fetch window, or a short retry."""
     if schedule is None or schedule.tariff_at(now) is None:
         return now + RETRY_INTERVAL
-    today = dt_util.as_local(now).date()
+    today = _amb_date(now)
     if has_tomorrow(schedule, now):
         day = today + timedelta(days=1)
     elif now < _window_start(today):
