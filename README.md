@@ -2,7 +2,7 @@
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz/)
 
-Home Assistant integration for the dynamic electricity tariff ([Tariffa Dinamica](https://www.amb.ch/approfondimenti/tariffa-dinamica/)) of Azienda Multiservizi Bellinzona (AMB). It tells you whether the current tariff is high or low and when it changes next, so you can run boilers, heat pumps or EV chargers in the cheap slots.
+Home Assistant integration for the dynamic electricity tariff ([Tariffa Dinamica](https://www.amb.ch/approfondimenti/tariffa-dinamica/)) of Azienda Multiservizi Bellinzona (AMB). It tells you whether the current tariff is high or low, when it changes next, and shows today's (and, from 12:30, tomorrow's) high-tariff periods in a calendar, so you can run boilers, heat pumps or EV chargers in the cheap slots.
 
 Only the AMB "Tariffa Dinamica" product is supported. From 2027 AMB's standard tariff is a single rate, so there is nothing to schedule for it.
 
@@ -24,12 +24,13 @@ Go to Settings → Devices & services → Add integration → "AMB Bellinzona". 
 
 ## Entities
 
-All entities belong to the "AMB Bellinzona" device.
+All entities belong to the "AMB Bellinzona" device. The entity IDs below are the English ones; Home Assistant names new entities in its system language, so an Italian installation gets for example `calendar.amb_bellinzona_tariffa_alta`.
 
 | Entity | Type | Description |
 | --- | --- | --- |
 | `sensor.amb_bellinzona_tariff` | enum | Current tariff: `high` or `low` |
 | `sensor.amb_bellinzona_next_tariff_change` | timestamp | When the tariff changes next (the frontend shows it as a live countdown) |
+| `calendar.amb_bellinzona_high_tariff` | calendar | One event per high-tariff period of today and, once AMB publishes it, tomorrow; `on` during a high-tariff period |
 
 ## How data is fetched
 
@@ -46,6 +47,19 @@ actions:
   - action: switch.turn_on
     target:
       entity_id: switch.boiler
+```
+
+The calendar works with the calendar trigger too, for example to start something when a high-tariff period ends:
+
+```yaml
+triggers:
+  - trigger: calendar
+    event: end
+    entity_id: calendar.amb_bellinzona_high_tariff
+actions:
+  - action: switch.turn_on
+    target:
+      entity_id: switch.washing_machine
 ```
 
 ## Migrating from `amb_dynamic_energy`

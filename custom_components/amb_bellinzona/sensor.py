@@ -10,13 +10,11 @@ from amb_bellinzona import Tariff, TariffSchedule
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorEntityDescription
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN
 from .coordinator import AMBBellinzonaConfigEntry, AMBBellinzonaCoordinator
+from .entity import AMBBellinzonaEntity
 
 # Coordinator-driven: no parallel update limit needed.
 PARALLEL_UPDATES = 0
@@ -60,23 +58,14 @@ async def async_setup_entry(
     async_add_entities(AMBBellinzonaSensor(entry.runtime_data, description) for description in SENSORS)
 
 
-class AMBBellinzonaSensor(CoordinatorEntity[AMBBellinzonaCoordinator], SensorEntity):
+class AMBBellinzonaSensor(AMBBellinzonaEntity, SensorEntity):
     """A sensor derived from the tariff schedule and the current time."""
 
-    _attr_has_entity_name = True
     entity_description: AMBBellinzonaSensorEntityDescription
 
     def __init__(self, coordinator: AMBBellinzonaCoordinator, description: AMBBellinzonaSensorEntityDescription) -> None:
-        super().__init__(coordinator)
+        super().__init__(coordinator, description.key)
         self.entity_description = description
-        entry_id = coordinator.config_entry.entry_id
-        self._attr_unique_id = f"{entry_id}_{description.key}"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, entry_id)},
-            manufacturer="AMB",
-            name="AMB Bellinzona",
-            entry_type=DeviceEntryType.SERVICE,
-        )
 
     @property
     def native_value(self) -> str | datetime | None:
