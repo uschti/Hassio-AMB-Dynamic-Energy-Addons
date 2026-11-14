@@ -12,6 +12,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # The tag is the source of truth: the zip always carries its version, even if manifest.json lags.
+      - name: Set manifest version from tag
+        run: |
+          manifest=custom_components/amb_bellinzona/manifest.json
+          sed -i -E "s/(\"version\": )\"[^\"]*\"/\1\"${GITHUB_REF_NAME#v}\"/" "$manifest"
+          grep -F "\"version\": \"${GITHUB_REF_NAME#v}\"" "$manifest"
+
       - name: Zip component files
         run: |
           cd custom_components/amb_bellinzona
