@@ -90,3 +90,15 @@ async def test_event_title_is_translated(
     entity_id = er.async_get(hass).async_get_entity_id("calendar", DOMAIN, f"{mock_config_entry.entry_id}_high_tariff")
     assert entity_id == "calendar.amb_bellinzona_tariffa_alta"  # HA names new entities in the system language
     assert hass.states.get(entity_id).attributes["message"] == "Tariffa alta"
+
+
+async def test_unique_ids(
+    hass: HomeAssistant, mock_client: MagicMock, mock_config_entry: MockConfigEntry, freezer: FrozenDateTimeFactory
+) -> None:
+    """The high-tariff calendar keeps the unique ID it shipped with, so existing installs keep their entity."""
+    freezer.move_to(NOW)
+    await setup_integration(hass, mock_config_entry)
+    registry = er.async_get(hass)
+    entry_id = mock_config_entry.entry_id
+    assert registry.async_get_entity_id("calendar", DOMAIN, f"{entry_id}_high_tariff") == ENTITY_ID
+    assert registry.async_get_entity_id("calendar", DOMAIN, f"{entry_id}_low_tariff") == "calendar.amb_bellinzona_low_tariff"
