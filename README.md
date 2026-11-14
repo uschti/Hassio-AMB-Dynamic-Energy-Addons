@@ -2,7 +2,7 @@
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz/)
 
-Home Assistant integration for the dynamic electricity tariff ([Tariffa Dinamica](https://www.amb.ch/approfondimenti/tariffa-dinamica/)) of Azienda Multiservizi Bellinzona (AMB). It tells you whether the current tariff is high or low, when it changes next, and shows today's (and, from 12:30, tomorrow's) high-tariff periods in a calendar, so you can run boilers, heat pumps or EV chargers in the cheap slots.
+Home Assistant integration for the dynamic electricity tariff ([Tariffa Dinamica](https://www.amb.ch/approfondimenti/tariffa-dinamica/)) of Azienda Multiservizi Bellinzona (AMB). It tells you whether the current tariff is high or low, when it changes next, and shows today's (and, from 12:30, tomorrow's) high- and low-tariff periods in two calendars, so you can run boilers, heat pumps or EV chargers in the cheap slots.
 
 Only the AMB "Tariffa Dinamica" product is supported. From 2027 AMB's standard tariff is a single rate, so there is nothing to schedule for it.
 
@@ -31,6 +31,7 @@ All entities belong to the "AMB Bellinzona" device. The entity IDs below are the
 | `sensor.amb_bellinzona_tariff` | enum | Current tariff: `high` or `low` |
 | `sensor.amb_bellinzona_next_tariff_change` | timestamp | When the tariff changes next (the frontend shows it as a live countdown) |
 | `calendar.amb_bellinzona_high_tariff` | calendar | One event per high-tariff period of today and, once AMB publishes it, tomorrow; `on` during a high-tariff period |
+| `calendar.amb_bellinzona_low_tariff` | calendar | The same for the low-tariff periods; `on` during a low-tariff period |
 
 ## How data is fetched
 

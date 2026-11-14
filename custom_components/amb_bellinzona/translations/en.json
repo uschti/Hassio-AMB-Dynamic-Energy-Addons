@@ -17,6 +17,9 @@
     "calendar": {
       "high_tariff": {
         "name": "High tariff"
+      },
+      "low_tariff": {
+        "name": "Low tariff"
       }
     },
     "sensor": {

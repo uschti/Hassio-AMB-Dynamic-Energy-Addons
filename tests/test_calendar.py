@@ -22,26 +22,33 @@ async def _move(hass: HomeAssistant, freezer: FrozenDateTimeFactory, when: str) 
     await hass.async_block_till_done()
 
 
-async def _events(hass: HomeAssistant, start: str, end: str) -> list[tuple[str, str, str]]:
+async def _events(hass: HomeAssistant, start: str, end: str, entity_id: str = ENTITY_ID) -> list[tuple[str, str, str]]:
     response = await hass.services.async_call(
         CALENDAR_DOMAIN,
         SERVICE_GET_EVENTS,
-        {"entity_id": ENTITY_ID, "start_date_time": start, "end_date_time": end},
+        {"entity_id": entity_id, "start_date_time": start, "end_date_time": end},
         blocking=True,
         return_response=True,
     )
-    return [(e["start"], e["end"], e["summary"]) for e in response[ENTITY_ID]["events"]]
+    return [(e["start"], e["end"], e["summary"]) for e in response[entity_id]["events"]]
 
 
 async def test_events_match_the_amb_app(
     hass: HomeAssistant, mock_client: MagicMock, mock_config_entry: MockConfigEntry, freezer: FrozenDateTimeFactory
 ) -> None:
-    """Verified against the AMB app on 2026-11-14: high 07:00-16:30 and 20:00-23:00."""
+    """Verified against the AMB app on 2026-11-14: high 07:00-16:30 and 20:00-23:00, low otherwise."""
     freezer.move_to(NOW)
     await setup_integration(hass, mock_config_entry)
     assert await _events(hass, "2026-11-14T00:00:00+01:00", "2026-11-15T00:00:00+01:00") == [
         ("2026-11-14T07:00:00+01:00", "2026-11-14T16:30:00+01:00", "High tariff"),
         ("2026-11-14T20:00:00+01:00", "2026-11-14T23:00:00+01:00", "High tariff"),
+    ]
+    assert await _events(
+        hass, "2026-11-14T00:00:00+01:00", "2026-11-15T00:00:00+01:00", "calendar.amb_bellinzona_low_tariff"
+    ) == [
+        ("2026-11-13T23:00:00+01:00", "2026-11-14T07:00:00+01:00", "Low tariff"),
+        ("2026-11-14T16:30:00+01:00", "2026-11-14T20:00:00+01:00", "Low tariff"),
+        ("2026-11-14T23:00:00+01:00", "2026-11-15T00:00:00+01:00", "Low tariff"),  # the schedule ends at midnight
     ]
     # Ranges are half-open: touching a period at its edge does not include it.
     assert await _events(hass, "2026-11-14T00:00:00+01:00", "2026-11-14T07:00:00+01:00") == []
@@ -83,3 +90,15 @@ async def test_event_title_is_translated(
     entity_id = er.async_get(hass).async_get_entity_id("calendar", DOMAIN, f"{mock_config_entry.entry_id}_high_tariff")
     assert entity_id == "calendar.amb_bellinzona_tariffa_alta"  # HA names new entities in the system language
     assert hass.states.get(entity_id).attributes["message"] == "Tariffa alta"
+
+
+async def test_unique_ids(
+    hass: HomeAssistant, mock_client: MagicMock, mock_config_entry: MockConfigEntry, freezer: FrozenDateTimeFactory
+) -> None:
+    """The high-tariff calendar keeps the unique ID it shipped with, so existing installs keep their entity."""
+    freezer.move_to(NOW)
+    await setup_integration(hass, mock_config_entry)
+    registry = er.async_get(hass)
+    entry_id = mock_config_entry.entry_id
+    assert registry.async_get_entity_id("calendar", DOMAIN, f"{entry_id}_high_tariff") == ENTITY_ID
+    assert registry.async_get_entity_id("calendar", DOMAIN, f"{entry_id}_low_tariff") == "calendar.amb_bellinzona_low_tariff"
