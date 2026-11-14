@@ -11,6 +11,7 @@ from amb_bellinzona import AMBBellinzona, AMBBellinzonaError, Tariff, TariffSche
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
@@ -110,6 +111,9 @@ class AMBBellinzonaCoordinator(DataUpdateCoordinator[TariffSchedule]):
     async def _async_setup(self) -> None:
         if (stored := await self.store.async_load()) is not None:
             self._cached = _load(stored)
+        self.config_entry.async_on_unload(
+            async_track_time_change(self.hass, self.async_quarter_hour, minute=(0, 15, 30, 45), second=0)
+        )
 
     async def _async_update_data(self) -> TariffSchedule:
         now = dt_util.utcnow()
