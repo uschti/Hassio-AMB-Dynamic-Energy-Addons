@@ -14,6 +14,11 @@
     }
   },
   "entity": {
+    "calendar": {
+      "high_tariff": {
+        "name": "Tariffa alta"
+      }
+    },
     "sensor": {
       "tariff": {
         "name": "Tariffa",
