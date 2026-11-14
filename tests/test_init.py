@@ -98,6 +98,30 @@ async def test_fetch_failure_uses_cache(
     assert hass.states.get("sensor.amb_bellinzona_tariff").state == "high"  # 14:30 local
 
 
+async def test_retry_backoff(
+    hass: HomeAssistant,
+    mock_client: MagicMock,
+    mock_config_entry: MockConfigEntry,
+    hass_storage: dict,
+    schedule: TariffSchedule,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """Failed requests retry after 1, 5 and 15 minutes, then every 30 minutes."""
+    freezer.move_to("2026-11-14T13:00:00+00:00")  # 14:00 local, tomorrow missing
+    _store(hass_storage, schedule)
+    mock_client.async_get_schedule.side_effect = AMBBellinzonaConnectionError("down")
+    await setup_integration(hass, mock_config_entry)
+    for minutes in (1, 5, 15, 30, 30):
+        freezer.tick(timedelta(minutes=minutes) - timedelta(seconds=1))
+        async_fire_time_changed(hass)
+        await hass.async_block_till_done()
+        calls = mock_client.async_get_schedule.await_count
+        freezer.tick(timedelta(seconds=1))
+        async_fire_time_changed(hass)
+        await hass.async_block_till_done()
+        assert mock_client.async_get_schedule.await_count == calls + 1, minutes
+
+
 async def test_scheduled_refresh_in_window(
     hass: HomeAssistant, mock_client: MagicMock, mock_config_entry: MockConfigEntry, freezer: FrozenDateTimeFactory
 ) -> None:

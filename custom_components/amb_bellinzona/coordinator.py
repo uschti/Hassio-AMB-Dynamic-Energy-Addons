@@ -15,7 +15,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN, FETCH_WINDOW_LENGTH, FETCH_WINDOW_START, RETRY_INTERVAL, STORAGE_VERSION
+from .const import DOMAIN, FETCH_WINDOW_LENGTH, FETCH_WINDOW_START, RETRY_BACKOFF, RETRY_INTERVAL, STORAGE_VERSION
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -91,7 +91,7 @@ class AMBBellinzonaCoordinator(DataUpdateCoordinator[TariffSchedule]):
         self.client = client
         self.store: Store[list[dict[str, str]]] = Store(hass, STORAGE_VERSION, DOMAIN)
         self._cached: TariffSchedule | None = None
-        self._fetch_failing = False
+        self._failures = 0
 
     async def _async_setup(self) -> None:
         if (stored := await self.store.async_load()) is not None:
@@ -104,16 +104,16 @@ class AMBBellinzonaCoordinator(DataUpdateCoordinator[TariffSchedule]):
             try:
                 schedule = await self.client.async_get_schedule()
             except AMBBellinzonaError as err:
-                self.update_interval = RETRY_INTERVAL
+                self.update_interval = RETRY_BACKOFF[min(self._failures, len(RETRY_BACKOFF) - 1)]
+                self._failures += 1
                 if schedule is None or schedule.tariff_at(now) is None:
                     raise UpdateFailed(f"Error fetching tariff schedule: {err}") from err
-                if not self._fetch_failing:
+                if self._failures == 1:
                     _LOGGER.warning("Fetching the tariff schedule failed, using the cached one: %s", err)
-                    self._fetch_failing = True
                 return schedule
-            if self._fetch_failing:
+            if self._failures:
                 _LOGGER.info("Fetching the tariff schedule works again")
-                self._fetch_failing = False
+                self._failures = 0
             await self.store.async_save(_dump(schedule))
         self.update_interval = next_fetch(schedule, now) - now
         return schedule

@@ -33,7 +33,7 @@ All entities belong to the "AMB Bellinzona" device.
 
 ## How data is fetched
 
-Data comes from AMB's official public API through the [`amb-bellinzona`](https://pypi.org/project/amb-bellinzona/) library. AMB publishes tomorrow's schedule by 12:00, so the integration makes one call per day at a random minute between 12:30 and 13:30 local time and retries after 30 minutes on failure. The schedule is cached on disk, so restarts do not trigger new calls. If the very first setup cannot reach the API, Home Assistant retries the setup with its own backoff until it succeeds.
+Data comes from AMB's official public API through the [`amb-bellinzona`](https://pypi.org/project/amb-bellinzona/) library. AMB publishes tomorrow's schedule by 12:00, so the integration makes one call per day at a random minute between 12:30 and 13:30 local time If a request fails it retries after 1, 5 and 15 minutes, then every 30 minutes; if AMB has not published tomorrow yet, it checks again every 30 minutes. The schedule is cached on disk, so restarts do not trigger new calls. If the very first setup cannot reach the API, Home Assistant retries the setup with its own backoff until it succeeds.
 
 ## Automation example
 
