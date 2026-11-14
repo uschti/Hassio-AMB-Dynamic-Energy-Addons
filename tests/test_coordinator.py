@@ -1,18 +1,30 @@
 """Tests for the AMB Bellinzona fetch policy."""
 
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
+
+import pytest
 
 from homeassistant.core import HomeAssistant
-from homeassistant.util import dt as dt_util
 
+from custom_components.amb_bellinzona.const import AMB_TIME_ZONE
 from custom_components.amb_bellinzona.coordinator import fetch_due, has_tomorrow, next_fetch
 
 from .conftest import make_schedule
 
 
+@pytest.fixture(autouse=True)
+async def ha_far_from_zurich(hass: HomeAssistant, zurich_time_zone: None) -> None:
+    """The policy runs on Swiss time whatever HA's time zone is."""
+    await hass.config.async_set_time_zone("America/New_York")
+
+
+def midnight(day: date) -> datetime:
+    return datetime.combine(day, time(), AMB_TIME_ZONE)
+
+
 def local(day: date, hour: int, minute: int = 0) -> datetime:
-    """Return a local (Europe/Zurich) aware datetime."""
-    return dt_util.start_of_local_day(day) + timedelta(hours=hour, minutes=minute)
+    """Return a Swiss (Europe/Zurich) aware datetime."""
+    return midnight(day) + timedelta(hours=hour, minutes=minute)
 
 
 TODAY = date(2026, 11, 14)
@@ -21,11 +33,11 @@ DAY_AFTER = date(2026, 11, 16)
 
 
 def today_only():
-    return make_schedule(dt_util.start_of_local_day(TODAY), dt_util.start_of_local_day(TOMORROW))
+    return make_schedule(midnight(TODAY), midnight(TOMORROW))
 
 
 def with_tomorrow():
-    return make_schedule(dt_util.start_of_local_day(TODAY), dt_util.start_of_local_day(DAY_AFTER))
+    return make_schedule(midnight(TODAY), midnight(DAY_AFTER))
 
 
 async def test_has_tomorrow(hass: HomeAssistant) -> None:
@@ -37,9 +49,9 @@ async def test_has_tomorrow(hass: HomeAssistant) -> None:
 async def test_has_tomorrow_dst_spring_forward(hass: HomeAssistant) -> None:
     """2027-03-28 has 23 h: tomorrow ends at local midnight, not +24 h."""
     day = date(2027, 3, 27)
-    end = dt_util.start_of_local_day(date(2027, 3, 29))
-    full = make_schedule(dt_util.start_of_local_day(day), end)
-    short = make_schedule(dt_util.start_of_local_day(day), end - timedelta(minutes=15))
+    end = midnight(date(2027, 3, 29))
+    full = make_schedule(midnight(day), end)
+    short = make_schedule(midnight(day), end - timedelta(minutes=15))
     assert has_tomorrow(full, local(day, 14))
     assert not has_tomorrow(short, local(day, 14))
 
@@ -53,7 +65,7 @@ async def test_fetch_due(hass: HomeAssistant) -> None:
 
 
 async def test_fetch_due_on_gap(hass: HomeAssistant) -> None:
-    gap = make_schedule(dt_util.start_of_local_day(TODAY), local(TODAY, 9))
+    gap = make_schedule(midnight(TODAY), local(TODAY, 9))
     assert fetch_due(gap, local(TODAY, 10))
 
 
@@ -75,5 +87,5 @@ async def test_next_fetch_retries_after_window_without_tomorrow(hass: HomeAssist
 
 async def test_next_fetch_retries_on_gap(hass: HomeAssistant) -> None:
     now = local(TODAY, 10)
-    gap = make_schedule(dt_util.start_of_local_day(TODAY), local(TODAY, 9))
+    gap = make_schedule(midnight(TODAY), local(TODAY, 9))
     assert next_fetch(gap, now) == now + timedelta(minutes=30)
